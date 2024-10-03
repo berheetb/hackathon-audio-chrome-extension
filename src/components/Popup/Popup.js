@@ -32,7 +32,7 @@ const Popup = () => {
 
         // Add a log to see if button click is working
         console.log(`Toggling audio for tab: ${id}, currently ${playing ? 'playing' : 'paused'}`);
-
+        console.log(tab)
         // Use chrome.scripting to either pause or resume the tab based on its current state
         chrome.scripting.executeScript(
             {
