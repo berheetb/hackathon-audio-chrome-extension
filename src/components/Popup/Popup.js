@@ -33,18 +33,22 @@ const Popup = () => {
         // Add a log to see if button click is working
         console.log(`Toggling audio for tab: ${id}, currently ${playing ? 'playing' : 'paused'}`);
         console.log(tab)
-        // Use chrome.scripting to either pause or resume the tab based on its current state
-        chrome.scripting.executeScript(
-            {
-                target: { tabId: id },
-                func: toggleMediaPlayback,
-                args: [playing],
-            },
-            () => {
-                console.log(`Tab ${id} ${playing ? 'paused' : 'resumed'}.`);
-                updateTabState(id, !playing); // Update the state after pausing/resuming
-            }
-        );
+
+        if (chrome.scripting) {
+            chrome.scripting.executeScript(
+                {
+                    target: { tabId: id },
+                    func: toggleMediaPlayback,
+                    args: [playing],
+                },
+                () => {
+                    console.log(`Tab ${id} ${playing ? 'paused' : 'resumed'}.`);
+                    updateTabState(id, !playing); // Update the state after pausing/resuming
+                }
+            );
+        } else {
+            console.error("chrome.scripting is not available.");
+        }
     };
 
     // Function injected into the tab to control media playback
