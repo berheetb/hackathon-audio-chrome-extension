@@ -32,19 +32,23 @@ const Popup = () => {
 
         // Add a log to see if button click is working
         console.log(`Toggling audio for tab: ${id}, currently ${playing ? 'playing' : 'paused'}`);
+        console.log(tab)
 
-        // Use chrome.scripting to either pause or resume the tab based on its current state
-        chrome.scripting.executeScript(
-            {
-                target: { tabId: id },
-                func: toggleMediaPlayback,
-                args: [playing],
-            },
-            () => {
-                console.log(`Tab ${id} ${playing ? 'paused' : 'resumed'}.`);
-                updateTabState(id, !playing); // Update the state after pausing/resuming
-            }
-        );
+        if (chrome.scripting) {
+            chrome.scripting.executeScript(
+                {
+                    target: { tabId: id },
+                    func: toggleMediaPlayback,
+                    args: [playing],
+                },
+                () => {
+                    console.log(`Tab ${id} ${playing ? 'paused' : 'resumed'}.`);
+                    updateTabState(id, !playing); // Update the state after pausing/resuming
+                }
+            );
+        } else {
+            console.error("chrome.scripting is not available.");
+        }
     };
 
     // Function injected into the tab to control media playback
@@ -70,6 +74,45 @@ const Popup = () => {
         );
     };
 
+    // Change volume of media in the tab
+    const changeTabVolume = (tab, volume) => {
+        const { id } = tab;
+        console.log(`Changing volume for tab: ${id}, volume: ${volume}`);
+
+        if (chrome.scripting) {
+            chrome.scripting.executeScript(
+                {
+                    target: { tabId: id },
+                    func: setMediaVolume,
+                    args: [volume],
+                },
+                () => {
+                    console.log(`Volume set to ${volume} for tab ${id}`);
+                    updateTabVolume(id, volume); // Update the volume state after setting
+                }
+            );
+        } else {
+            console.error("chrome.scripting is not available.");
+        }
+    };
+
+    // Function injected into the tab to control media volume
+    const setMediaVolume = (volume) => {
+        const mediaElements = document.querySelectorAll('audio, video');
+        mediaElements.forEach((media) => {
+            media.volume = volume; // Set the volume level for each media element
+        });
+    };
+
+    // Update the volume state of the tab
+    const updateTabVolume = (tabId, volume) => {
+        setAudibleTabs((prevTabs) =>
+            prevTabs.map((tab) =>
+                tab.id === tabId ? { ...tab, volume } : tab
+            )
+        );
+    };
+
     return (
         <div className="popup-container">
             <h1>Audible Tabs</h1>
@@ -77,14 +120,25 @@ const Popup = () => {
                 {audibleTabs.length > 0 ? (
                     audibleTabs.map((tab) => (
                         <li key={tab.id} className="tab-item">
-                            <img src={tab.favIconUrl || 'default-icon.png'} alt="Tab Icon" className="tab-icon" />
-                            <span className="tab-title">{tab.title}</span>
+                            <span className='tab-title-container'>
+                                <img src={tab.favIconUrl || 'default-icon.png'} alt="Tab Icon" className="tab-icon" />
+                                <span className="tab-title">{tab.title}</span>
+                            </span>
                             <button
                                 className="control-button"
                                 onClick={() => toggleTabAudio(tab)}
                             >
                                 {tab.playing ? 'Pause' : 'Resume'}
                             </button>
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                value={tab.volume}
+                                className="volume-slider"
+                                onChange={(e) => changeTabVolume(tab, parseFloat(e.target.value))}
+                            />
                         </li>
                     ))
                 ) : (

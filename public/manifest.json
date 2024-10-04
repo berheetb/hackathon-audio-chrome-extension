@@ -6,7 +6,8 @@
     "tabs",
     "activeTab",
     "tabCapture",
-    "audio"
+    "audio",
+    "scripting"
   ],
   "background": {
     "service_worker": "background.js"

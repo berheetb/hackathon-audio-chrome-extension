@@ -2,6 +2,7 @@
     padding: 20px;
     font-family: Arial, sans-serif;
     max-width: 300px;
+    min-width: 250px;
     color: #333;
 }
 
@@ -11,6 +12,10 @@ h1 {
     color: #555;
 }
 
+.tab-title-container{
+    display: flex;
+    flex-direction: row;
+}
 .tab-list {
     list-style-type: none;
     padding: 0;
@@ -18,11 +23,13 @@ h1 {
 
 .tab-item {
     display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-    background-color: #f9f9f9;
+    flex-direction: column; /* Stack items vertically */
+    align-items: flex-start;
+    margin-bottom: 20px;
     padding: 10px;
+    background-color: #f9f9f9;
     border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .tab-icon {
@@ -39,6 +46,10 @@ h1 {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 200px;
+    display: flex;
+    justify-content: left;
+    align-items: center;
 }
 
 .control-button {
@@ -57,4 +68,8 @@ h1 {
 .no-tabs {
     font-size: 14px;
     color: #999;
+}
+
+.volume-slider{
+
 }
