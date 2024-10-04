@@ -1,38 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import './popup.css'; 
+import React, { useState, useEffect } from 'react'
+import './popup.css' 
 
 const Popup = () => {
-    const [audibleTabs, setAudibleTabs] = useState([]);
+    const [audibleTabs, setAudibleTabs] = useState([])
+    const [playbackStates, setPlaybackStates] = useState({})
 
     useEffect(() => {
         if (typeof chrome !== 'undefined' && chrome.runtime) {
-            queryAudibleTabs();
+            queryAudibleTabs()
         } else {
-            console.error("Chrome API is not available.");
+            console.error("Chrome API is not available.")
         }
-    }, []);
+    }, [])
+
+    // Utility function to convert seconds to MM:SS format
+    const formatTime = (seconds) => {
+        const minutes = Math.floor(seconds / 60)
+        const remainingSeconds = Math.floor(seconds % 60)
+        const paddedMinutes = String(minutes).padStart(2, '0')
+        const paddedSeconds = String(remainingSeconds).padStart(2, '0')
+        return `${paddedMinutes}:${paddedSeconds}`
+    }
 
     // Query for all currently audible tabs
     const queryAudibleTabs = async () => {
         try {
             const tabs = await new Promise((resolve) => {
-                chrome.tabs.query({ audible: true }, (tabs) => resolve(tabs));
-            });
+                chrome.tabs.query({ audible: true }, (tabs) => resolve(tabs))
+            })
 
-            const tabsWithState = tabs.map((tab) => ({ ...tab, playing: true }));
-            setAudibleTabs(tabsWithState);
+            const tabsWithState = tabs.map((tab) => ({ ...tab, playing: true, volume: 1.0 }))
+            setAudibleTabs(tabsWithState)
+            tabsWithState.forEach(tab => updatePlaybackState(tab.id)) // Initialize playback states for each tab
         } catch (error) {
-            console.error("Error querying audible tabs:", error);
+            console.error("Error querying audible tabs:", error)
         }
-    };
+    }
 
     // Pause or resume a specific tab
     const toggleTabAudio = async (tab) => {
-        const { id, playing } = tab;
-
-        // Add a log to see if button click is working
-        console.log(`Toggling audio for tab: ${id}, currently ${playing ? 'playing' : 'paused'}`);
-        console.log(tab)
+        const { id, playing } = tab
 
         if (chrome.scripting) {
             chrome.scripting.executeScript(
@@ -42,28 +49,25 @@ const Popup = () => {
                     args: [playing],
                 },
                 () => {
-                    console.log(`Tab ${id} ${playing ? 'paused' : 'resumed'}.`);
-                    updateTabState(id, !playing); // Update the state after pausing/resuming
+                    updateTabState(id, !playing) // Update the state after pausing/resuming
                 }
-            );
+            )
         } else {
-            console.error("chrome.scripting is not available.");
+            console.error("chrome.scripting is not available.")
         }
-    };
+    }
 
     // Function injected into the tab to control media playback
     const toggleMediaPlayback = (isPlaying) => {
-        const mediaElements = document.querySelectorAll('audio, video');
+        const mediaElements = document.querySelectorAll('audio, video')
         mediaElements.forEach((media) => {
             if (isPlaying) {
-                console.log('Pausing media');
-                media.pause(); // Pause audio/video
+                media.pause() // Pause audio/video
             } else {
-                console.log('Resuming media');
-                media.play(); // Resume audio/video
+                media.play() // Resume audio/video
             }
-        });
-    };
+        })
+    }
 
     // Update the state of the tab (whether it's playing or paused)
     const updateTabState = (tabId, isPlaying) => {
@@ -71,13 +75,71 @@ const Popup = () => {
             prevTabs.map((tab) =>
                 tab.id === tabId ? { ...tab, playing: isPlaying } : tab
             )
-        );
-    };
+        )
+    }
+
+    // Update the playback state of a specific tab (get current time, duration, and volume)
+    const updatePlaybackState = (tabId) => {
+        if (chrome.scripting) {
+            chrome.scripting.executeScript(
+                {
+                    target: { tabId: tabId },
+                    func: getPlaybackState,
+                },
+                (result) => {
+                    if (result && result[0]) {
+                        const { currentTime, duration, volume } = result[0].result
+                        setPlaybackStates((prevStates) => ({
+                            ...prevStates,
+                            [tabId]: { currentTime, duration, volume },
+                        }))
+                    }
+                }
+            )
+        }
+    }
+
+    // Function injected into the tab to get the current playback state
+    const getPlaybackState = () => {
+        const mediaElement = document.querySelector('audio, video')
+        if (mediaElement) {
+            return {
+                currentTime: mediaElement.currentTime,
+                duration: mediaElement.duration,
+                volume: mediaElement.volume,
+            }
+        }
+        return { currentTime: 0, duration: 0, volume: 1.0 }
+    }
+
+    // Seek to a specific time in the media element
+    const seekMedia = (tabId, newTime) => {
+        if (chrome.scripting) {
+            chrome.scripting.executeScript(
+                {
+                    target: { tabId: tabId },
+                    func: seekToTime,
+                    args: [newTime],
+                },
+                () => {
+                    updatePlaybackState(tabId) // Update the playback state after seeking
+                }
+            )
+        }
+    }
+
+    // Function injected into the tab to seek to a specific time
+    const seekToTime = (newTime) => {
+        const mediaElement = document.querySelector('audio, video')
+        if (mediaElement) {
+            mediaElement.currentTime = newTime
+        }
+    }
 
     // Change volume of media in the tab
     const changeTabVolume = (tab, volume) => {
-        const { id } = tab;
-        console.log(`Changing volume for tab: ${id}, volume: ${volume}`);
+        const { id } = tab
+        console.log(`Changing volume for tab: ${id}, volume: ${volume}`)
 
         if (chrome.scripting) {
             chrome.scripting.executeScript(
@@ -87,22 +149,22 @@ const Popup = () => {
                     args: [volume],
                 },
                 () => {
-                    console.log(`Volume set to ${volume} for tab ${id}`);
-                    updateTabVolume(id, volume); // Update the volume state after setting
+                    console.log(`Volume set to ${volume} for tab ${id}`)
+                    updateTabVolume(id, volume) // Update the volume state after setting
                 }
-            );
+            )
         } else {
-            console.error("chrome.scripting is not available.");
+            console.error("chrome.scripting is not available.")
         }
-    };
+    }
 
     // Function injected into the tab to control media volume
     const setMediaVolume = (volume) => {
-        const mediaElements = document.querySelectorAll('audio, video');
+        const mediaElements = document.querySelectorAll('audio, video')
         mediaElements.forEach((media) => {
-            media.volume = volume; // Set the volume level for each media element
-        });
-    };
+            media.volume = volume // Set the volume level for each media element
+        })
+    }
 
     // Update the volume state of the tab
     const updateTabVolume = (tabId, volume) => {
@@ -110,8 +172,8 @@ const Popup = () => {
             prevTabs.map((tab) =>
                 tab.id === tabId ? { ...tab, volume } : tab
             )
-        );
-    };
+        )
+    }
 
     return (
         <div className="popup-container">
@@ -130,6 +192,8 @@ const Popup = () => {
                             >
                                 {tab.playing ? 'Pause' : 'Resume'}
                             </button>
+
+                            {/* Slider to control volume */}
                             <input
                                 type="range"
                                 min="0"
@@ -139,6 +203,22 @@ const Popup = () => {
                                 className="volume-slider"
                                 onChange={(e) => changeTabVolume(tab, parseFloat(e.target.value))}
                             />
+
+                            {/* Playhead */}
+                            {playbackStates[tab.id] && (
+                                <div className="playback-container">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max={playbackStates[tab.id].duration || 0}
+                                        value={playbackStates[tab.id].currentTime || 0}
+                                        onChange={(e) => seekMedia(tab.id, e.target.value)}
+                                    />
+                                    <span className="playback-time">
+                                        {formatTime(playbackStates[tab.id].currentTime || 0)} / {formatTime(playbackStates[tab.id].duration || 0)}
+                                    </span>
+                                </div>
+                            )}
                         </li>
                     ))
                 ) : (
@@ -146,7 +226,7 @@ const Popup = () => {
                 )}
             </ul>
         </div>
-    );
-};
+    )
+}
 
-export default Popup;
+export default Popup
