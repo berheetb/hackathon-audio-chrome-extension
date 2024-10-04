@@ -1,8 +1,8 @@
 .popup-container {
     padding: 20px;
     font-family: Arial, sans-serif;
-    max-width: 300px;
-    min-width: 250px;
+    max-width: 350px;
+    min-width: 300px;
     color: #333;
 }
 
@@ -10,12 +10,14 @@ h1 {
     font-size: 18px;
     margin-bottom: 10px;
     color: #555;
+    text-align: center;
 }
 
-.tab-title-container{
+.tab-title-container {
     display: flex;
     flex-direction: row;
 }
+
 .tab-list {
     list-style-type: none;
     padding: 0;
@@ -59,6 +61,7 @@ h1 {
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    margin-top: 10px;
 }
 
 .control-button:hover {
@@ -70,6 +73,39 @@ h1 {
     color: #999;
 }
 
-.volume-slider{
+.volume-slider {
+    width: 100%;
+    margin: 10px 0;
+}
 
+.playback-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.playback-container input[type="range"] {
+    width: 100%;
+    appearance: none;
+    height: 6px;
+    background: #ddd;
+    outline: none;
+    border-radius: 5px;
+    transition: background 0.2s ease-in-out;
+}
+
+.playback-container input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    background-color: #007bff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.playback-time {
+    font-size: 12px;
+    color: #666;
 }
